@@ -94,6 +94,10 @@ class SpriteTypeParser {
             // Запускаем мониторинг окончания игры
             this.startGameEndMonitoring();
             
+            // Даем время на подготовку перед началом печати
+            console.log('⏳ Подготовка к печати...');
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 секунда подготовки
+            
             // Запускаем печать через движок (используется фиксированная высокая натуральность)
             await this.typingEngine.startTyping(allWordsText);
             

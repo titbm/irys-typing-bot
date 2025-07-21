@@ -85,6 +85,10 @@ class TypingEngine {
     async typeAllWords(words) {
         console.log(`⌨️ Начинаем натуральную печать ${words.length} слов`);
         
+        // Пауза перед началом печати (подготовка к работе)
+        console.log('⏳ Пауза перед началом печати (подготовка)...');
+        await this.naturalPause('preparation');
+        
         for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
             if (!this.typingState.isRunning || this.typingState.forceStopped) {
                 console.log('🛑 Печать остановлена');
@@ -333,6 +337,10 @@ class TypingEngine {
                 
             case 'double':
                 pauseTime = this.randomBetween(100, 300); // Увеличено с 50-150 до 100-300ms
+                break;
+                
+            case 'preparation':
+                pauseTime = this.randomBetween(1500, 3500); // Длинная пауза перед началом печати
                 break;
                 
             default:
