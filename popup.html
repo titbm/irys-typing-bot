@@ -80,7 +80,9 @@
       cursor: pointer;
       font-weight: 600;
       transition: all 0.3s ease;
-      margin-top: 10px;
+      margin: 10px auto 0 auto;
+      display: block;
+      width: fit-content;
     }
     
     .start-btn {
@@ -170,7 +172,7 @@
     <div id="settings-panel">
       <div class="input-group">
         <label for="gameCount">Количество игр:</label>
-        <input type="number" id="gameCount" min="1" max="100" value="5">
+        <input type="number" id="gameCount" min="1" value="5">
       </div>
       
       <button id="startBtn" class="start-btn">🚀 Запустить автоматизацию</button>

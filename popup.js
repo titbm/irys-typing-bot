@@ -40,8 +40,8 @@ class PopupController {
   async handleStart() {
     const gameCount = parseInt(this.gameCountInput.value);
     
-    if (!gameCount || gameCount < 1 || gameCount > 100) {
-      this.showError('Пожалуйста, введите корректное количество игр (1-100)');
+    if (!gameCount || gameCount < 1) {
+      this.showError('Пожалуйста, введите корректное количество игр (минимум 1)');
       return;
     }
 

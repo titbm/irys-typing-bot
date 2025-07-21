@@ -165,7 +165,7 @@ class BackgroundController {
       type: 'PROGRESS_UPDATE',
       currentGame: this.state.currentGame,
       totalGames: this.state.totalGames,
-      status: 'Подготовка страницы...'
+      status: 'Начали игру...'
     });
 
     // Note: We now wait for CONTENT_READY message instead of using setTimeout
@@ -480,7 +480,7 @@ class BackgroundController {
       type: 'PROGRESS_UPDATE',
       currentGame: this.state.currentGame,
       totalGames: this.state.totalGames,
-      status: `Восстановление игры ${this.state.currentGame} из ${this.state.totalGames}`
+      status: `Начали игру ${this.state.currentGame} из ${this.state.totalGames}`
     });
   }
 
