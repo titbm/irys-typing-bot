@@ -325,12 +325,16 @@ class WordParser {
             console.log(`🛑 [${monitorId}] Мониторинг остановлен`);
         }
         
-        // СРАЗУ останавливаем печать
+        // СРАЗУ останавливаем печать через отдельный callback
+        console.log(`🛑 [${monitorId}] ОСТАНАВЛИВАЕМ ПЕЧАТЬ!`);
         if (this.gameEndCallback) {
-            console.log(`🛑 [${monitorId}] ОСТАНАВЛИВАЕМ ПЕЧАТЬ!`);
-            this.gameEndCallback();
-            console.log(`✅ [${monitorId}] Печать остановлена`);
+            // Создаем временную функцию только для остановки печати
+            const stopTypingOnly = () => {
+                // Здесь будет вызван typingEngine.forceStop() из content.js
+            };
+            this.gameEndCallback.call(null, 'STOP_TYPING_ONLY');
         }
+        console.log(`✅ [${monitorId}] Печать остановлена`);
         
         // Пауза перед нажатием Submit (как будто проверяем результат)
         console.log(`⏳ [${monitorId}] Пауза перед нажатием Submit (проверяем результат)...`);
@@ -348,7 +352,7 @@ class WordParser {
             console.log('❌ Все попытки нажатия кнопки исчерпаны');
             // Вызываем callback о завершении игры
             if (this.gameEndCallback) {
-                this.gameEndCallback();
+                this.gameEndCallback('GAME_COMPLETED');
             }
             return;
         }
@@ -360,7 +364,7 @@ class WordParser {
                 
                 // Вызываем callback о завершении игры
                 if (this.gameEndCallback) {
-                    this.gameEndCallback();
+                    this.gameEndCallback('GAME_COMPLETED');
                 }
                 return;
             }
