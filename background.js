@@ -7,7 +7,8 @@ class BackgroundController {
       isRunning: false,
       currentGame: 0,
       totalGames: 0,
-      settings: null
+      settings: null,
+      processingGameEnd: false
     };
     
     this.initializeListeners();
@@ -46,20 +47,40 @@ class BackgroundController {
 
       case 'CONTENT_READY':
         console.log('Background: Content script is ready');
-        // If we're waiting to start automation, start it now
-        if (this.state.isRunning && this.state.settings && !this.state.automationStarted) {
+        
+        // Проверяем, есть ли сохраненное состояние игры
+        const savedState = await chrome.storage.local.get('gameState');
+        
+        if (savedState.gameState && savedState.gameState.isRunning) {
+          console.log('Background: Найдено сохраненное состояние, восстанавливаем игру:', savedState.gameState);
+          
+          // Восстанавливаем состояние background
+          this.state.isRunning = savedState.gameState.isRunning;
+          this.state.currentGame = savedState.gameState.currentGame;
+          this.state.totalGames = savedState.gameState.totalGames;
+          this.state.settings = savedState.gameState.settings;
+          this.state.automationStarted = true; // Важно! Помечаем как уже запущенную
+          
+          // Отправляем команду восстановления в content script
+          setTimeout(() => {
+            this.sendToContentScript({ 
+              type: 'RESTORE_AUTOMATION', 
+              gameState: savedState.gameState 
+            });
+          }, 1000); // Даем больше времени на загрузку
+          
+        } else if (this.state.isRunning && this.state.settings && !this.state.automationStarted) {
+          // Обычный запуск новой автоматизации
           console.log('Background: Starting automation after content script ready');
           this.state.automationStarted = true; // Prevent multiple starts
-          // Add a small delay to ensure content script is fully ready
           setTimeout(() => {
             this.sendToContentScript({ 
               type: 'START_AUTOMATION', 
               settings: this.state.settings 
             });
           }, 500);
-        } else if (this.state.automationStarted) {
-          console.log('Background: Automation already started, ignoring CONTENT_READY');
         }
+        
         sendResponse({ success: true });
         break;
 
@@ -77,16 +98,27 @@ class BackgroundController {
         this.handleAutomationComplete();
         break;
 
-      case 'AUTOMATION_ERROR':
-        this.handleAutomationError(message.error);
-        break;
-
       case 'ERROR_NOTIFICATION':
         this.handleErrorNotification(message.errorInfo);
         break;
 
-      case 'RESTORE_GAME_STATE':
-        await this.restoreGameState(message.gameState);
+      case 'GAME_ENDED':
+        this.handleGameEnded(message);
+        sendResponse({ success: true });
+        break;
+
+      case 'NEXT_GAME_STARTED':
+        this.handleNextGameStarted();
+        sendResponse({ success: true });
+        break;
+
+      case 'AUTOMATION_RESTORE_READY':
+        this.handleAutomationRestoreReady(message);
+        sendResponse({ success: true });
+        break;
+
+      case 'AUTOMATION_ERROR':
+        this.handleAutomationError(message);
         sendResponse({ success: true });
         break;
 
@@ -138,6 +170,15 @@ class BackgroundController {
     console.log('Background: Stopping automation, current state:', this.state);
     this.state.isRunning = false;
     this.state.automationStarted = false; // Reset flag for next start
+    this.state.processingGameEnd = false; // Reset game end processing flag
+    
+    // Очищаем сохраненное состояние игры
+    await chrome.storage.local.remove('gameState');
+    
+    // Сбрасываем состояние
+    this.state.currentGame = 0;
+    this.state.totalGames = 0;
+    this.state.settings = null;
     
     // Send stop message to content script
     this.sendToContentScript({ type: 'STOP_AUTOMATION' });
@@ -163,9 +204,95 @@ class BackgroundController {
     this.sendToPopup({ type: 'AUTOMATION_COMPLETE' });
   }
 
-  handleAutomationError(error) {
-    this.state.isRunning = false;
-    this.sendToPopup({ type: 'AUTOMATION_ERROR', error });
+  /**
+   * Обрабатывает окончание игры
+   */
+  handleGameEnded(message) {
+    console.log('Background: Игра закончена, получено сообщение:', message.message);
+    
+    if (!this.state.isRunning) {
+      console.log('Background: Автоматизация не активна, игнорируем завершение игры');
+      return;
+    }
+
+    // Обрабатываем завершение игры и переход к следующей
+    this.handleGameCompleted();
+  }
+
+  /**
+   * Обрабатывает завершение одной игры и переход к следующей
+   */
+  async handleGameCompleted() {
+    console.log('Background: Игра завершена, проверяем нужно ли продолжать...');
+    
+    if (!this.state.isRunning) {
+      console.log('Background: Автоматизация не активна, игнорируем');
+      return;
+    }
+    
+    // Защита от двойного вызова - проверяем, не обрабатываем ли уже завершение
+    if (this.state.processingGameEnd) {
+      console.log('Background: Завершение игры уже обрабатывается, игнорируем повторный вызов');
+      return;
+    }
+    
+    this.state.processingGameEnd = true;
+    
+    try {
+      console.log(`Background: Завершена игра ${this.state.currentGame} из ${this.state.totalGames}`);
+      
+      // Проверяем, достигли ли целевого количества игр (БЕЗ увеличения счетчика)
+      if (this.state.currentGame >= this.state.totalGames) {
+        console.log('Background: Все игры завершены!');
+        this.state.isRunning = false;
+        
+        // Очищаем сохраненное состояние
+        await chrome.storage.local.remove('gameState');
+        
+        // Уведомляем popup о завершении всех игр
+        this.sendToPopup({ 
+          type: 'AUTOMATION_COMPLETE',
+          message: `Завершены все ${this.state.totalGames} игр(ы)`
+        });
+        
+        // Сброс состояния
+        this.state.currentGame = 0;
+        this.state.totalGames = 0;
+        this.state.settings = null;
+        
+        return;
+      }
+      
+      // Увеличиваем счетчик только сейчас, перед переходом к следующей игре
+      this.state.currentGame++;
+      console.log(`Background: Переходим к игре ${this.state.currentGame} из ${this.state.totalGames}`);
+      
+      // Обновляем прогресс
+      this.sendToPopup({
+        type: 'PROGRESS_UPDATE',
+        currentGame: this.state.currentGame,
+        totalGames: this.state.totalGames,
+        status: `Ожидание новой игры ${this.state.currentGame} из ${this.state.totalGames}`
+      });
+      
+      // Сохраняем состояние для восстановления после перезагрузки страницы
+      await chrome.storage.local.set({
+        gameState: {
+          isRunning: true,
+          currentGame: this.state.currentGame,
+          totalGames: this.state.totalGames,
+          settings: this.state.settings
+        }
+      });
+      
+      console.log('Background: Состояние сохранено, content script запустит следующую игру...');
+      
+    } finally {
+      // Снимаем блокировку через небольшую задержку
+      setTimeout(() => {
+        this.state.processingGameEnd = false;
+      }, 2000);
+    }
   }
 
   /**
@@ -185,32 +312,11 @@ class BackgroundController {
     // If error is critical and not recoverable, stop automation
     if (!errorInfo.recoverable && this.state.isRunning) {
       console.warn('Background: Critical error detected, stopping automation due to:', errorInfo.message);
-      this.handleAutomationError(errorInfo.message);
+      this.handleAutomationError({ 
+        error: errorInfo.message,
+        currentGame: this.state.currentGame 
+      });
     }
-  }
-
-  async restoreGameState(gameState) {
-    console.log('Restoring game state after page refresh:', gameState);
-    
-    // Restore background state
-    this.state.isRunning = gameState.isRunning;
-    this.state.currentGame = gameState.currentGame;
-    this.state.totalGames = gameState.totalGames;
-    this.state.settings = gameState.settings;
-
-    // Send restoration message to content script
-    this.sendToContentScript({ 
-      type: 'RESTORE_AUTOMATION', 
-      gameState: gameState 
-    });
-
-    // Notify popup about restoration
-    this.sendToPopup({
-      type: 'PROGRESS_UPDATE',
-      currentGame: gameState.currentGame,
-      totalGames: gameState.totalGames,
-      status: `Продолжение: игра ${gameState.currentGame} из ${gameState.totalGames}`
-    });
   }
 
   async sendToContentScript(message) {
@@ -335,6 +441,61 @@ class BackgroundController {
       
       throw error;
     }
+  }
+
+  /**
+   * Обрабатывает уведомление о запуске следующей игры
+   */
+  handleNextGameStarted() {
+    console.log('Background: Получено уведомление о запуске следующей игры');
+    
+    if (this.state.isRunning) {
+      // Обновляем прогресс в popup
+      this.sendToPopup({
+        type: 'PROGRESS_UPDATE',
+        currentGame: this.state.currentGame,
+        totalGames: this.state.totalGames,
+        status: `Переход к игре ${this.state.currentGame} из ${this.state.totalGames}`
+      });
+    }
+  }
+
+  /**
+   * Обрабатывает уведомление о готовности к восстановлению автоматизации
+   */
+  handleAutomationRestoreReady(message) {
+    console.log('Background: Content script готов к восстановлению автоматизации');
+    
+    this.state.currentGame = message.currentGame;
+    this.state.totalGames = message.totalGames;
+    
+    // Обновляем прогресс в popup
+    this.sendToPopup({
+      type: 'PROGRESS_UPDATE',
+      currentGame: this.state.currentGame,
+      totalGames: this.state.totalGames,
+      status: `Восстановление игры ${this.state.currentGame} из ${this.state.totalGames}`
+    });
+  }
+
+  /**
+   * Обрабатывает ошибки автоматизации
+   */
+  handleAutomationError(message) {
+    console.error('Background: Ошибка автоматизации:', message.error);
+    
+    // Останавливаем автоматизацию при ошибке
+    this.state.isRunning = false;
+    
+    // Уведомляем popup об ошибке
+    this.sendToPopup({
+      type: 'AUTOMATION_ERROR',
+      error: message.error,
+      currentGame: message.currentGame || this.state.currentGame
+    });
+    
+    // Очищаем сохраненное состояние
+    chrome.storage.local.remove('gameState');
   }
 }
 

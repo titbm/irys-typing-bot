@@ -30,6 +30,7 @@ class TypingEngine {
         this.typingState.currentWordIndex = 0;
         this.typingState.currentCharIndex = 0;
         this.typingState.wordsToType = words;
+        this.typingState.forceStopped = false; // Флаг принудительной остановки
         
         try {
             // Запускаем печать всех слов
@@ -48,7 +49,7 @@ class TypingEngine {
         console.log(`⌨️ Начинаем печать ${words.length} слов`);
         
         for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
-            if (!this.typingState.isRunning) {
+            if (!this.typingState.isRunning || this.typingState.forceStopped) {
                 console.log('🛑 Печать остановлена');
                 break;
             }
@@ -67,7 +68,7 @@ class TypingEngine {
             if (wordIndex < words.length - 1) {
                 console.log('📝 Добавляем пробел между словами');
                 await this.typeCharacter(' ');
-                await this.delay(500); // Короткая пауза после пробела
+                await this.delay(500);
             }
         }
         
@@ -82,7 +83,7 @@ class TypingEngine {
         console.log(`⌨️ Начинаем печать слова "${word}" по буквам`);
         
         for (let i = 0; i < word.length; i++) {
-            if (!this.typingState.isRunning) {
+            if (!this.typingState.isRunning || this.typingState.forceStopped) {
                 console.log('🛑 Печать остановлена');
                 break;
             }
@@ -149,12 +150,25 @@ class TypingEngine {
     /**
      * Останавливает печать
      */
-    stopTyping() {
-        console.log('🛑 Остановка печати');
+    stopTyping(reason = 'manual') {
+        console.log(`🛑 Остановка печати (причина: ${reason})`);
         this.typingState.isRunning = false;
         this.typingState.currentWordIndex = 0;
         this.typingState.currentCharIndex = 0;
         this.typingState.wordsToType = [];
+        
+        if (reason === 'game_end') {
+            this.typingState.forceStopped = true;
+        }
+    }
+
+    /**
+     * Принудительно останавливает печать (при окончании игры)
+     */
+    forceStop() {
+        console.log('🏁 ПРИНУДИТЕЛЬНАЯ ОСТАНОВКА ПЕЧАТИ - ИГРА ЗАКОНЧЕНА!');
+        this.typingState.forceStopped = true;
+        this.stopTyping('game_end');
     }
 
     /**

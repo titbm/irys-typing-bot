@@ -17,6 +17,10 @@ class WordParser {
             // Кнопки времени
             timeButtons: 'button'
         };
+        
+        // Флаг для отслеживания состояния игры
+        this.gameEnded = false;
+        this.gameEndCallback = null;
     }
 
     /**
@@ -196,6 +200,163 @@ class WordParser {
         }
         
         console.log('🧪 === ТЕСТ ЗАВЕРШЕН ===');
+    }
+
+    /**
+     * Ищет и нажимает кнопку "Submit to leaderboard"
+     */
+    clickSubmitButton() {
+        console.log('🔍 Ищем кнопку Submit to Leaderboard...');
+        
+        // Ищем все кнопки
+        const buttons = document.querySelectorAll('button');
+        console.log(`📱 Найдено ${buttons.length} кнопок`);
+        
+        for (const button of buttons) {
+            const text = button.textContent?.toLowerCase() || '';
+            console.log(`🔍 Проверяем: "${text.substring(0, 50)}"`);
+            
+            if ((text.includes('submit') && text.includes('leaderboard')) || 
+                (text.includes('connect') && text.includes('okx'))) {
+                console.log('✅ НАЙДЕНА КНОПКА!');
+                try {
+                    button.click();
+                    console.log('🎯 КНОПКА НАЖАТА!');
+                    return true;
+                } catch (e) {
+                    console.log('❌ Ошибка нажатия:', e);
+                }
+            }
+        }
+        
+        console.log('❌ Кнопка не найдена');
+        return false;
+    }
+
+    /**
+     * Начинает отслеживание окончания игры (прямой мониторинг DOM)
+     */
+    startGameEndMonitoring(callback) {
+        console.log('👀 Начинаем мониторинг окончания игры...');
+        
+        this.gameEndCallback = callback;
+        
+        // СБРАСЫВАЕМ состояние для новой игры
+        this.gameEnded = false;
+        
+        // Останавливаем предыдущий мониторинг если он есть
+        if (this.gameMonitorInterval) {
+            clearInterval(this.gameMonitorInterval);
+        }
+        
+        // Прямой мониторинг DOM каждые 100ms
+        this.gameMonitorInterval = setInterval(() => {
+            this.checkGameEnd();
+        }, 100);
+        
+        console.log('🎧 Мониторинг DOM настроен для новой игры');
+    }
+
+    /**
+     * Проверяет окончание игры по DOM
+     */
+    checkGameEnd() {
+        if (this.gameEnded) return;
+        
+        // Ищем popup с результатами
+        const gameResultsHeading = document.querySelector('h2');
+        if (gameResultsHeading && gameResultsHeading.textContent?.trim() === 'Game Results') {
+            console.log('🎮 ИГРА ЗАКОНЧЕНА! Найден popup с результатами');
+            this.handleGameEnd();
+            return;
+        }
+        
+        // Ищем текст "Game finished!"
+        const gameFinishedText = document.querySelector('*');
+        if (gameFinishedText) {
+            const allText = document.body.textContent || '';
+            if (allText.includes('Game finished!')) {
+                console.log('🎮 ИГРА ЗАКОНЧЕНА! Найден текст Game finished!');
+                this.handleGameEnd();
+                return;
+            }
+        }
+    }
+
+    /**
+     * Обрабатывает окончание игры
+     */
+    handleGameEnd() {
+        if (this.gameEnded) return;
+        
+        console.log('🏁 ОБРАБАТЫВАЕМ ОКОНЧАНИЕ ИГРЫ...');
+        this.gameEnded = true;
+        
+        // Останавливаем мониторинг СРАЗУ
+        if (this.gameMonitorInterval) {
+            clearInterval(this.gameMonitorInterval);
+            this.gameMonitorInterval = null;
+            console.log('🛑 Мониторинг остановлен');
+        }
+        
+        // СРАЗУ останавливаем печать
+        if (this.gameEndCallback) {
+            console.log('🛑 ОСТАНАВЛИВАЕМ ПЕЧАТЬ!');
+            this.gameEndCallback();
+            console.log('✅ Печать остановлена');
+        }
+        
+        // Пробуем нажать кнопку с умными попытками
+        this.attemptClickSubmit(0);
+    }
+
+    /**
+     * Пытается нажать кнопку Submit с остановкой при успехе
+     */
+    attemptClickSubmit(attempt) {
+        if (attempt >= 3) {
+            console.log('❌ Все попытки нажатия кнопки исчерпаны');
+            // Вызываем callback о завершении игры
+            if (this.gameEndCallback) {
+                this.gameEndCallback();
+            }
+            return;
+        }
+        
+        const delay = [500, 1500, 3000][attempt];
+        setTimeout(() => {
+            if (this.clickSubmitButton()) {
+                console.log('✅ Кнопка успешно нажата, больше попыток не нужно');
+                
+                // Вызываем callback о завершении игры
+                if (this.gameEndCallback) {
+                    this.gameEndCallback();
+                }
+                return;
+            }
+            
+            // Пробуем еще раз только если предыдущая попытка не удалась
+            this.attemptClickSubmit(attempt + 1);
+        }, delay);
+    }
+
+    /**
+     * Останавливает мониторинг окончания игры
+     */
+    stopGameEndMonitoring() {
+        console.log('🛑 Останавливаем мониторинг окончания игры');
+        
+        // Останавливаем интервал мониторинга
+        if (this.gameMonitorInterval) {
+            clearInterval(this.gameMonitorInterval);
+            this.gameMonitorInterval = null;
+        }
+        
+        // Сбрасываем состояние
+        this.gameEndCallback = null;
+        this.gameEnded = false;
+        
+        console.log('✅ Мониторинг полностью остановлен, готов к новой игре');
     }
 }
 

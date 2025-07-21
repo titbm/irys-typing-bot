@@ -83,7 +83,15 @@ class PopupController {
   handleStop() {
     // Send stop message to background script
     chrome.runtime.sendMessage({ type: 'STOP_AUTOMATION' });
+    
+    // Immediately show settings panel
     this.showSettings();
+    
+    // Show confirmation message
+    this.showSuccess('Автоматизация остановлена');
+    setTimeout(() => {
+      this.statusDiv.classList.add('hidden');
+    }, 2000);
   }
 
   showSettings() {
@@ -157,11 +165,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       popup.showProgress(message.currentGame, message.totalGames, message.status);
       break;
     case 'AUTOMATION_COMPLETE':
-      popup.showSuccess('Все игры завершены!');
-      setTimeout(() => popup.showSettings(), 2000);
+      popup.showSuccess(message.message || 'Все игры завершены!');
+      setTimeout(() => popup.showSettings(), 3000);
       break;
     case 'AUTOMATION_ERROR':
-      popup.showError(message.error);
+      popup.showError(message.error || 'Произошла ошибка автоматизации');
       setTimeout(() => popup.showSettings(), 3000);
       break;
     case 'ERROR_NOTIFICATION':
@@ -169,6 +177,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
     case 'AUTOMATION_STOPPED':
       popup.showSettings();
+      break;
+    case 'GAME_ENDED':
+      // Не переходим сразу к настройкам, если играем несколько игр
+      popup.showSuccess(message.message || 'Игра завершена');
+      // Переход к настройкам только если автоматизация полностью завершена
       break;
   }
 });
