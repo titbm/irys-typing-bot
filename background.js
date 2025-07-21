@@ -194,12 +194,13 @@ class BackgroundController {
   }
 
   updateProgress(message) {
-    this.state.currentGame = message.currentGame;
+    // НЕ перезаписываем this.state.currentGame из сообщений!
+    // Счетчик управляется только в handleGameCompleted
     
     // Forward to popup
     this.sendToPopup({
       type: 'PROGRESS_UPDATE',
-      currentGame: message.currentGame,
+      currentGame: this.state.currentGame, // Используем НАШЕ значение счетчика
       totalGames: this.state.totalGames,
       status: message.status
     });
