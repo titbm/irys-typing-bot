@@ -259,15 +259,18 @@ class WordParser {
      * Начинает отслеживание окончания игры (прямой мониторинг DOM)
      */
     startGameEndMonitoring(callback) {
-        console.log('👀 Начинаем мониторинг окончания игры...');
+        const monitorId = Math.random().toString(36).substr(2, 9);
+        console.log(`👀 [${monitorId}] Начинаем мониторинг окончания игры...`);
         
         this.gameEndCallback = callback;
+        this.currentMonitorId = monitorId;
         
         // СБРАСЫВАЕМ состояние для новой игры
         this.gameEnded = false;
         
         // Останавливаем предыдущий мониторинг если он есть
         if (this.gameMonitorInterval) {
+            console.log(`🛑 [${monitorId}] Останавливаем предыдущий мониторинг`);
             clearInterval(this.gameMonitorInterval);
         }
         
@@ -276,7 +279,7 @@ class WordParser {
             this.checkGameEnd();
         }, 100);
         
-        console.log('🎧 Мониторинг DOM настроен для новой игры');
+        console.log(`🎧 [${monitorId}] Мониторинг DOM настроен для новой игры`);
     }
 
     /**
@@ -311,25 +314,26 @@ class WordParser {
     handleGameEnd() {
         if (this.gameEnded) return;
         
-        console.log('🏁 ОБРАБАТЫВАЕМ ОКОНЧАНИЕ ИГРЫ...');
+        const monitorId = this.currentMonitorId || 'unknown';
+        console.log(`🏁 [${monitorId}] ОБРАБАТЫВАЕМ ОКОНЧАНИЕ ИГРЫ...`);
         this.gameEnded = true;
         
         // Останавливаем мониторинг СРАЗУ
         if (this.gameMonitorInterval) {
             clearInterval(this.gameMonitorInterval);
             this.gameMonitorInterval = null;
-            console.log('🛑 Мониторинг остановлен');
+            console.log(`🛑 [${monitorId}] Мониторинг остановлен`);
         }
         
         // СРАЗУ останавливаем печать
         if (this.gameEndCallback) {
-            console.log('🛑 ОСТАНАВЛИВАЕМ ПЕЧАТЬ!');
+            console.log(`🛑 [${monitorId}] ОСТАНАВЛИВАЕМ ПЕЧАТЬ!`);
             this.gameEndCallback();
-            console.log('✅ Печать остановлена');
+            console.log(`✅ [${monitorId}] Печать остановлена`);
         }
         
         // Пауза перед нажатием Submit (как будто проверяем результат)
-        console.log('⏳ Пауза перед нажатием Submit (проверяем результат)...');
+        console.log(`⏳ [${monitorId}] Пауза перед нажатием Submit (проверяем результат)...`);
         setTimeout(() => {
             // Пробуем нажать кнопку с умными попытками
             this.attemptClickSubmit(0);

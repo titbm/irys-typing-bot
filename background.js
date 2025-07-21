@@ -215,14 +215,16 @@ class BackgroundController {
    * Обрабатывает окончание игры
    */
   handleGameEnded(message) {
-    console.log('Background: Игра закончена, получено сообщение:', message.message);
+    console.log('🎯 Background: handleGameEnded ВЫЗВАН - игра закончена, получено сообщение:', message.message);
+    console.log(`🎯 Background: Состояние перед обработкой - currentGame: ${this.state.currentGame}, isRunning: ${this.state.isRunning}, processingGameEnd: ${this.state.processingGameEnd}`);
     
     if (!this.state.isRunning) {
-      console.log('Background: Автоматизация не активна, игнорируем завершение игры');
+      console.log('❌ Background: Автоматизация не активна, игнорируем завершение игры');
       return;
     }
 
     // Обрабатываем завершение игры и переход к следующей
+    console.log('▶️ Background: Вызываем handleGameCompleted...');
     this.handleGameCompleted();
   }
 
@@ -230,27 +232,29 @@ class BackgroundController {
    * Обрабатывает завершение одной игры и переход к следующей
    */
   async handleGameCompleted() {
-    console.log('Background: Игра завершена, проверяем нужно ли продолжать...');
+    console.log('🔍 Background: handleGameCompleted НАЧАЛО - проверяем нужно ли продолжать...');
+    console.log(`🔍 Background: Текущее состояние - currentGame: ${this.state.currentGame}, totalGames: ${this.state.totalGames}, isRunning: ${this.state.isRunning}, processingGameEnd: ${this.state.processingGameEnd}`);
     
     if (!this.state.isRunning) {
-      console.log('Background: Автоматизация не активна, игнорируем');
+      console.log('❌ Background: Автоматизация не активна, игнорируем');
       return;
     }
     
     // Защита от двойного вызова - проверяем, не обрабатываем ли уже завершение
     if (this.state.processingGameEnd) {
-      console.log('Background: Завершение игры уже обрабатывается, игнорируем повторный вызов');
+      console.log('⚠️ Background: Завершение игры уже обрабатывается, игнорируем повторный вызов');
       return;
     }
     
     this.state.processingGameEnd = true;
+    console.log('🔒 Background: Установили блокировку processingGameEnd = true');
     
     try {
-      console.log(`Background: Завершена игра ${this.state.currentGame} из ${this.state.totalGames}`);
+      console.log(`📊 Background: Завершена игра ${this.state.currentGame} из ${this.state.totalGames}`);
       
       // Проверяем, достигли ли целевого количества игр (БЕЗ увеличения счетчика)
       if (this.state.currentGame >= this.state.totalGames) {
-        console.log('Background: Все игры завершены!');
+        console.log('🏁 Background: Все игры завершены!');
         this.state.isRunning = false;
         
         // Очищаем сохраненное состояние
@@ -271,8 +275,10 @@ class BackgroundController {
       }
       
       // Увеличиваем счетчик только сейчас, перед переходом к следующей игре
+      const oldGame = this.state.currentGame;
       this.state.currentGame++;
-      console.log(`Background: Переходим к игре ${this.state.currentGame} из ${this.state.totalGames}`);
+      console.log(`➡️ Background: УВЕЛИЧИЛИ счетчик с ${oldGame} на ${this.state.currentGame}`);
+      console.log(`🎮 Background: Переходим к игре ${this.state.currentGame} из ${this.state.totalGames}`);
       
       // Обновляем прогресс
       this.sendToPopup({
@@ -292,11 +298,12 @@ class BackgroundController {
         }
       });
       
-      console.log('Background: Состояние сохранено, content script запустит следующую игру...');
+      console.log('💾 Background: Состояние сохранено, content script запустит следующую игру...');
       
     } finally {
       // Снимаем блокировку через небольшую задержку
       setTimeout(() => {
+        console.log('🔓 Background: Снимаем блокировку processingGameEnd через 2 секунды');
         this.state.processingGameEnd = false;
       }, 2000);
     }
