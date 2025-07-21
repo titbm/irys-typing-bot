@@ -1,19 +1,7 @@
 <!DOCTYPE html>
 <html>
-<he    input {
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    
-    select {
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-      background-color: white;
-    } <meta charset="utf-8">
+<head>
+  <meta charset="utf-8">
   <style>
     body {
       width: 300px;
@@ -40,9 +28,17 @@
     
     input {
       padding: 8px;
-      border: 1px solid #ccc;
+      border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 14px;
+    }
+    
+    select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background-color: white;
     }
     
     button {
@@ -106,38 +102,20 @@
         <input type="number" id="gameCount" min="1" max="100" value="5">
       </div>
       
-      <div class="input-group">
-        <label for="naturalness">Натуральность печати:</label>
-        <select id="naturalness">
-          <option value="low">Низкая (быстро)</option>
-          <option value="medium" selected>Средняя</option>
-          <option value="high">Высокая (очень естественно)</option>
-        </select>
-      </div>
-      
-      <div class="input-group">
-        <label for="errorRate">Частота ошибок:</label>
-        <select id="errorRate">
-          <option value="none">Без ошибок</option>
-          <option value="low">Редко</option>
-          <option value="medium" selected>Иногда</option>
-          <option value="high">Часто</option>
-        </select>
-      </div>
-      
       <button id="startBtn" class="start-btn">Старт</button>
     </div>
     
     <div id="progress-panel" class="hidden">
-      <div class="status info">
+      <div class="input-group">
+        <label>Прогресс:</label>
         <div>Игра <span id="currentGame">1</span> из <span id="totalGames">5</span></div>
-        <div id="gameStatus">Инициализация...</div>
+        <div id="gameStatus">Запуск...</div>
       </div>
       
       <button id="stopBtn" class="stop-btn">Стоп</button>
     </div>
     
-    <div id="status" class="hidden"></div>
+    <div id="status" class="status hidden"></div>
   </div>
   
   <script src="popup.js"></script>

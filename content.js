@@ -48,7 +48,7 @@ class SpriteTypeParser {
             
             switch (message.type) {
                 case 'START_AUTOMATION':
-                    this.startAutomation(message.settings);
+                    this.startAutomation();
                     sendResponse({ success: true });
                     break;
                     
@@ -69,9 +69,9 @@ class SpriteTypeParser {
     }
 
     /**
-     * Запускает автоматическую печать
+     * Запускает автоматическую печать (используется фиксированная высокая натуральность)
      */
-    async startAutomation(settings) {
+    async startAutomation() {
         if (this.typingEngine.isRunning()) {
             console.log('⚠️ Печать уже запущена');
             return;
@@ -94,8 +94,8 @@ class SpriteTypeParser {
             // Запускаем мониторинг окончания игры
             this.startGameEndMonitoring();
             
-            // Запускаем печать через движок с настройками натуральности
-            await this.typingEngine.startTyping(allWordsText, settings);
+            // Запускаем печать через движок (используется фиксированная высокая натуральность)
+            await this.typingEngine.startTyping(allWordsText);
             
         } catch (error) {
             console.error('❌ Ошибка автоматической печати:', error);
@@ -194,8 +194,8 @@ class SpriteTypeParser {
         try {
             console.log(`🎮 Запускаем игру ${gameState.currentGame} из ${gameState.totalGames}`);
             
-            // Запускаем автоматизацию с теми же настройками
-            await this.startAutomation(gameState.settings);
+            // Запускаем автоматизацию (используется фиксированная высокая натуральность)
+            await this.startAutomation();
             
         } catch (error) {
             console.error('❌ Ошибка восстановления автоматизации:', error);
