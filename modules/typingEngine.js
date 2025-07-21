@@ -23,6 +23,7 @@ class TypingEngine {
             // Вероятности ошибок (редкие ошибки)
             errorRate: 0.015,    // Уменьшено с 0.03 до 0.015 (1.5% ошибок)
             doubleKeyRate: 0.005, // Уменьшено с 0.01 до 0.005 (0.5% двойных нажатий)
+            twoCharErrorRate: 0.3, // 30% ошибок будут на 2 символа (более реалистично)
             
             // Паузы (сильно увеличены для максимальной натуральности)
             wordPause: { min: 500, max: 1400 },      // Увеличено с 350-900 до 500-1400ms
@@ -117,12 +118,23 @@ class TypingEngine {
                 await this.makeTypingError(char);
             }
             
-            // Имитируем двойное нажатие
+            // Имитируем двойное нажатие (залипание клавиши)
             if (Math.random() < this.humanSettings.doubleKeyRate) {
+                console.log(`🔁 Имитируем залипание клавиши: "${char}"`);
                 await this.typeCharacter(char);
                 await this.naturalPause('double');
-                await this.typeBackspace();
-                await this.naturalPause('correction');
+                
+                // Иногда (60% случаев) сразу исправляем, иногда замечаем позже
+                const immediateCorrection = Math.random() < 0.6;
+                
+                if (immediateCorrection) {
+                    console.log(`🔧 Сразу исправляем залипание`);
+                    await this.typeBackspace();
+                    await this.naturalPause('correction');
+                } else {
+                    console.log(`⏳ Заметим залипание через несколько символов`);
+                    // Оставляем ошибку, исправим позже (это добавит еще больше реализма)
+                }
             }
             
             // Печатаем правильный символ
@@ -141,13 +153,29 @@ class TypingEngine {
     }
 
     /**
-     * Имитирует ошибку печати с исправлением
+     * Имитирует ошибку печати с исправлением (иногда на 1-2 символа)
      */
     async makeTypingError(correctChar) {
+        // Решаем, будет ли это ошибка на 1 или 2 символа
+        const isTwoCharError = Math.random() < this.humanSettings.twoCharErrorRate;
+        
+        if (isTwoCharError) {
+            console.log(`🚫🚫 Имитируем двойную ошибку перед "${correctChar}"`);
+            await this.makeTwoCharacterError(correctChar);
+        } else {
+            console.log(`🚫 Имитируем одиночную ошибку перед "${correctChar}"`);
+            await this.makeSingleCharacterError(correctChar);
+        }
+    }
+
+    /**
+     * Имитирует ошибку на один символ
+     */
+    async makeSingleCharacterError(correctChar) {
         // Выбираем случайный неправильный символ
         const wrongChar = this.getRandomWrongChar(correctChar);
         
-        console.log(`🚫 Имитируем ошибку: "${wrongChar}" вместо "${correctChar}"`);
+        console.log(`🚫 Печатаем неправильно: "${wrongChar}" вместо "${correctChar}"`);
         
         // Печатаем неправильный символ
         await this.typeCharacter(wrongChar);
@@ -158,6 +186,44 @@ class TypingEngine {
         // Исправляем ошибку
         await this.typeBackspace();
         await this.naturalPause('correction');
+    }
+
+    /**
+     * Имитирует ошибку на два символа
+     */
+    async makeTwoCharacterError(correctChar) {
+        // Выбираем два случайных неправильных символа
+        const wrongChar1 = this.getRandomWrongChar(correctChar);
+        const wrongChar2 = this.getRandomWrongChar(correctChar);
+        
+        console.log(`🚫🚫 Печатаем двойную ошибку: "${wrongChar1}${wrongChar2}" перед "${correctChar}"`);
+        
+        // Печатаем первый неправильный символ
+        await this.typeCharacter(wrongChar1);
+        await this.naturalPause('character');
+        
+        // Печатаем второй неправильный символ
+        await this.typeCharacter(wrongChar2);
+        
+        // Более длинная пауза на осознание двойной ошибки
+        await this.naturalPause('error_realization');
+        await this.naturalPause('error_realization'); // Дополнительная пауза
+        
+        // Иногда (20% случаев) исправляем только один символ, оставляя небольшую ошибку
+        const isPartialCorrection = Math.random() < 0.2;
+        
+        if (isPartialCorrection) {
+            console.log(`🔧 Частичное исправление: убираем только последний символ`);
+            await this.typeBackspace();
+            await this.naturalPause('correction');
+        } else {
+            console.log(`🔧🔧 Полное исправление: убираем оба символа`);
+            // Исправляем оба символа
+            await this.typeBackspace();
+            await this.naturalPause('correction');
+            await this.typeBackspace();
+            await this.naturalPause('correction');
+        }
     }
 
     /**
