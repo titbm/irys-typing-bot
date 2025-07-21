@@ -16,21 +16,21 @@ class TypingEngine {
 
         // Настройки натуральности печати (жестко заданы для высокой натуральности)
         this.humanSettings = {
-            // Базовая скорость печати (замедлена + высокая натуральность)
-            baseSpeed: 180,      // Увеличено с 120 до 180ms (медленнее)
-            speedVariation: 140, // Увеличено с 80 до 140ms (больше вариаций)
+            // Базовая скорость печати (максимально натурально)
+            baseSpeed: 250,      // Увеличено с 180 до 250ms (еще медленнее)
+            speedVariation: 200, // Увеличено с 140 до 200ms (больше вариаций)
             
             // Вероятности ошибок (редкие ошибки)
             errorRate: 0.015,    // Уменьшено с 0.03 до 0.015 (1.5% ошибок)
             doubleKeyRate: 0.005, // Уменьшено с 0.01 до 0.005 (0.5% двойных нажатий)
             
-            // Паузы (увеличены для натуральности)
-            wordPause: { min: 350, max: 900 },      // Увеличено для высокой натуральности
-            sentencePause: { min: 1000, max: 1800 }, // Увеличено после точек
+            // Паузы (сильно увеличены для максимальной натуральности)
+            wordPause: { min: 500, max: 1400 },      // Увеличено с 350-900 до 500-1400ms
+            sentencePause: { min: 1500, max: 2800 }, // Увеличено с 1000-1800 до 1500-2800ms
             
-            // Специальные символы (медленнее)
+            // Специальные символы (еще медленнее)
             slowCharacters: ['.', ',', '!', '?', ';', ':', '-', '_', '(', ')', '"', "'"],
-            slowCharacterMultiplier: 1.8, // Увеличено с 1.5 до 1.8
+            slowCharacterMultiplier: 2.2, // Увеличено с 1.8 до 2.2
             
             // Часто ошибочные комбинации букв
             errorProneChars: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p']
@@ -219,15 +219,15 @@ class TypingEngine {
                 break;
                 
             case 'error_realization':
-                pauseTime = this.randomBetween(300, 800);
+                pauseTime = this.randomBetween(600, 1400); // Увеличено с 300-800 до 600-1400ms
                 break;
                 
             case 'correction':
-                pauseTime = this.randomBetween(200, 400);
+                pauseTime = this.randomBetween(400, 800); // Увеличено с 200-400 до 400-800ms
                 break;
                 
             case 'double':
-                pauseTime = this.randomBetween(50, 150);
+                pauseTime = this.randomBetween(100, 300); // Увеличено с 50-150 до 100-300ms
                 break;
                 
             default:
@@ -249,6 +249,11 @@ class TypingEngine {
         const variation = (Math.random() - 0.5) * this.humanSettings.speedVariation;
         basePause += variation;
         
+        // Добавляем случайные дополнительные паузы (5% шанс длинной паузы)
+        if (Math.random() < 0.05) {
+            basePause += this.randomBetween(500, 1500); // Случайная длинная пауза
+        }
+        
         // Медленнее для специальных символов
         if (character && this.humanSettings.slowCharacters.includes(character)) {
             basePause *= this.humanSettings.slowCharacterMultiplier;
@@ -262,7 +267,7 @@ class TypingEngine {
             );
         }
         
-        return Math.max(basePause, 50); // Минимум 50ms
+        return Math.max(basePause, 100); // Увеличено минимум с 50ms до 100ms
     }
 
     /**
