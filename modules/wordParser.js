@@ -77,11 +77,24 @@ class WordParser {
         const text = element.textContent?.trim();
         if (!text) return null;
         
-        // Проверяем что это валидное английское слово
-        if (!/^[a-zA-Z]+$/.test(text)) return null;
+        // Проверяем что это валидное английское слово (включая дефисы и апострофы)
+        if (!/^[a-zA-Z\-']+$/.test(text)) return null;
         if (text.length < 1 || text.length > 25) return null;
         
         return text;
+    }
+
+    /**
+     * Тестирует парсинг слов с дефисами (для отладки)
+     */
+    testHyphenatedWords() {
+        const testWords = ['well-known', 'mother-in-law', "can't", 'self-made', 'twenty-one'];
+        console.log('🧪 Тест парсинга слов с дефисами:');
+        
+        testWords.forEach(word => {
+            const isValid = /^[a-zA-Z\-']+$/.test(word);
+            console.log(`  ${word}: ${isValid ? '✅ валидно' : '❌ не валидно'}`);
+        });
     }
 
     /**
@@ -167,6 +180,9 @@ class WordParser {
      */
     testParser() {
         console.log('🧪 === ТЕСТИРУЕМ ПАРСЕР ===');
+        
+        // Тест 0: Слова с дефисами
+        this.testHyphenatedWords();
         
         try {
             // Тест 1: Игровой контейнер
