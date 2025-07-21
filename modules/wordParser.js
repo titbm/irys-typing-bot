@@ -242,8 +242,22 @@ class WordParser {
                     try {
                         button.click();
                         console.log('🎯 КНОПКА НАЖАТА!');
+                        
+                        // ВЫЗЫВАЕМ CALLBACK ЗДЕСЬ, ПОСЛЕ РЕАЛЬНОГО НАЖАТИЯ
+                        setTimeout(() => {
+                            console.log('🏁 Кнопка нажата, вызываем callback завершения игры...');
+                            if (this.gameEndCallback) {
+                                this.gameEndCallback('GAME_COMPLETED');
+                            }
+                        }, 1000); // Даем время на обработку нажатия
+                        
                     } catch (e) {
                         console.log('❌ Ошибка нажатия:', e);
+                        
+                        // В случае ошибки все равно вызываем callback
+                        if (this.gameEndCallback) {
+                            this.gameEndCallback('GAME_COMPLETED');
+                        }
                     }
                 }, 300 + Math.random() * 500); // 300-800ms
                 
@@ -362,10 +376,7 @@ class WordParser {
             if (this.clickSubmitButton()) {
                 console.log('✅ Кнопка успешно нажата, больше попыток не нужно');
                 
-                // Вызываем callback о завершении игры
-                if (this.gameEndCallback) {
-                    this.gameEndCallback('GAME_COMPLETED');
-                }
+                // НЕ вызываем callback здесь - он вызывается внутри clickSubmitButton()
                 return;
             }
             
