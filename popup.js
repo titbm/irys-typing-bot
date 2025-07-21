@@ -12,6 +12,8 @@ class PopupController {
     this.settingsPanel = document.getElementById('settings-panel');
     this.progressPanel = document.getElementById('progress-panel');
     this.gameCountInput = document.getElementById('gameCount');
+    this.naturalnessSelect = document.getElementById('naturalness');
+    this.errorRateSelect = document.getElementById('errorRate');
     this.startBtn = document.getElementById('startBtn');
     this.stopBtn = document.getElementById('stopBtn');
     this.currentGameSpan = document.getElementById('currentGame');
@@ -58,8 +60,8 @@ class PopupController {
 
     const settings = {
       gameCount: gameCount,
-      typingSpeed: { min: 40, max: 80 },
-      errorRate: 0.05
+      naturalness: this.getNaturalnessSettings(),
+      humanTyping: this.getHumanTypingSettings()
     };
 
     console.log('Popup: Sending START_AUTOMATION message with settings:', settings);
@@ -153,6 +155,63 @@ class PopupController {
     this.statusDiv.className = 'status warning';
     this.statusDiv.textContent = message;
     this.statusDiv.classList.remove('hidden');
+  }
+
+  /**
+   * Получает настройки натуральности печати
+   */
+  getNaturalnessSettings() {
+    const naturalness = this.naturalnessSelect.value;
+    
+    switch (naturalness) {
+      case 'low':
+        return {
+          baseSpeed: 80,
+          speedVariation: 40,
+          wordPause: { min: 100, max: 200 }
+        };
+      case 'high':
+        return {
+          baseSpeed: 160,
+          speedVariation: 120,
+          wordPause: { min: 300, max: 800 }
+        };
+      default: // medium
+        return {
+          baseSpeed: 120,
+          speedVariation: 80,
+          wordPause: { min: 200, max: 500 }
+        };
+    }
+  }
+
+  /**
+   * Получает настройки человеческого поведения
+   */
+  getHumanTypingSettings() {
+    const errorRate = this.errorRateSelect.value;
+    
+    let settings = {
+      doubleKeyRate: 0.01, // 1% двойных нажатий
+      slowCharacters: ['.', ',', '!', '?', ';', ':', '-', '_', '(', ')', '"', "'"],
+      slowCharacterMultiplier: 1.5
+    };
+    
+    switch (errorRate) {
+      case 'none':
+        settings.errorRate = 0;
+        break;
+      case 'low':
+        settings.errorRate = 0.01; // 1% ошибок
+        break;
+      case 'high':
+        settings.errorRate = 0.05; // 5% ошибок
+        break;
+      default: // medium
+        settings.errorRate = 0.03; // 3% ошибок
+    }
+    
+    return settings;
   }
 }
 

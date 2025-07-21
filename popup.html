@@ -1,7 +1,19 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
+<he    input {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background-color: white;
+    } <meta charset="utf-8">
   <style>
     body {
       width: 300px;
@@ -92,6 +104,25 @@
       <div class="input-group">
         <label for="gameCount">Количество игр:</label>
         <input type="number" id="gameCount" min="1" max="100" value="5">
+      </div>
+      
+      <div class="input-group">
+        <label for="naturalness">Натуральность печати:</label>
+        <select id="naturalness">
+          <option value="low">Низкая (быстро)</option>
+          <option value="medium" selected>Средняя</option>
+          <option value="high">Высокая (очень естественно)</option>
+        </select>
+      </div>
+      
+      <div class="input-group">
+        <label for="errorRate">Частота ошибок:</label>
+        <select id="errorRate">
+          <option value="none">Без ошибок</option>
+          <option value="low">Редко</option>
+          <option value="medium" selected>Иногда</option>
+          <option value="high">Часто</option>
+        </select>
       </div>
       
       <button id="startBtn" class="start-btn">Старт</button>

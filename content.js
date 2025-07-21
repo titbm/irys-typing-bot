@@ -94,8 +94,8 @@ class SpriteTypeParser {
             // Запускаем мониторинг окончания игры
             this.startGameEndMonitoring();
             
-            // Запускаем печать через движок
-            await this.typingEngine.startTyping(allWordsText);
+            // Запускаем печать через движок с настройками натуральности
+            await this.typingEngine.startTyping(allWordsText, settings);
             
         } catch (error) {
             console.error('❌ Ошибка автоматической печати:', error);

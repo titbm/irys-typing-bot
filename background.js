@@ -90,6 +90,12 @@ class BackgroundController {
         sendResponse({ success: true });
         break;
 
+      case 'TYPE_BACKSPACE':
+        // ИСПОЛЬЗУЕМ DEBUGGER API ДЛЯ ОТПРАВКИ BACKSPACE
+        await this.handleTypeBackspace(sender.tab.id);
+        sendResponse({ success: true });
+        break;
+
       case 'PROGRESS_UPDATE':
         this.updateProgress(message);
         break;
@@ -496,6 +502,81 @@ class BackgroundController {
     
     // Очищаем сохраненное состояние
     chrome.storage.local.remove('gameState');
+  }
+
+  /**
+   * ОТПРАВЛЯЕТ BACKSPACE ЧЕРЕЗ DEBUGGER API
+   */
+  async handleTypeBackspace(tabId) {
+    try {
+      console.log(`🔙 DEBUGGER API: отправляем Backspace на tab ${tabId}`);
+      
+      // Подключаемся к debugger
+      await new Promise((resolve, reject) => {
+        chrome.debugger.attach({ tabId }, '1.3', () => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve();
+          }
+        });
+      });
+      
+      console.log('✅ Debugger подключен для Backspace');
+      
+      // Отправляем keyDown для Backspace
+      await new Promise((resolve, reject) => {
+        chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+          type: 'keyDown',
+          key: 'Backspace',
+          code: 'Backspace',
+          windowsVirtualKeyCode: 8,
+          nativeVirtualKeyCode: 8,
+          isKeypad: false
+        }, (result) => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            console.log('📤 Backspace keyDown отправлен');
+            resolve(result);
+          }
+        });
+      });
+      
+      // Отправляем keyUp для Backspace
+      await new Promise((resolve, reject) => {
+        chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+          type: 'keyUp',
+          key: 'Backspace',
+          code: 'Backspace',
+          windowsVirtualKeyCode: 8,
+          nativeVirtualKeyCode: 8,
+          isKeypad: false
+        }, (result) => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            console.log('📤 Backspace keyUp отправлен');
+            resolve(result);
+          }
+        });
+      });
+      
+      // Отключаемся от debugger
+      chrome.debugger.detach({ tabId }, () => {
+        console.log('✅ Debugger отключен после Backspace');
+      });
+      
+      console.log('🔙 BACKSPACE успешно отправлен!');
+      
+    } catch (error) {
+      console.error('❌ Ошибка Backspace Debugger API:', error);
+      
+      // Отключаемся в случае ошибки
+      chrome.debugger.detach({ tabId }, () => {});
+      
+      throw error;
+    }
   }
 }
 
