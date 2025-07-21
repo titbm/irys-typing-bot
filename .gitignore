@@ -1,0 +1,30 @@
+# Логи и временные файлы
+*.log
+logs.txt
+debug.log
+
+# Node modules (если будут)
+node_modules/
+npm-debug.log*
+
+# IDE файлы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS файлы
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Временные файлы разработки
+test_*.js
+*_test.js
+debug_*.js
+diagnose_*.js
+
+# Устаревшие файлы
+old/
+backup/
+temp/
