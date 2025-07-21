@@ -136,6 +136,11 @@ class BackgroundController {
   async startAutomation(settings) {
     console.log('Background: Starting automation with settings:', settings);
     
+    // ПРИНУДИТЕЛЬНО ОЧИЩАЕМ СТАРЫЕ ДАННЫЕ ПЕРЕД ЗАПУСКОМ
+    console.log('🧹 ОЧИСТКА старого состояния перед запуском...');
+    await chrome.storage.local.clear();
+    console.log('✅ Storage очищен, начинаем с чистого листа');
+    
     // Reset automation state flags
     this.state.automationStarted = false;
     
@@ -143,6 +148,8 @@ class BackgroundController {
     this.state.currentGame = 1;
     this.state.totalGames = settings.gameCount;
     this.state.settings = settings;
+
+    console.log(`🎮 НОВАЯ АВТОМАТИЗАЦИЯ: игра ${this.state.currentGame} из ${this.state.totalGames}`);
 
     // Ensure we're on the correct site
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -178,8 +185,10 @@ class BackgroundController {
     this.state.automationStarted = false; // Reset flag for next start
     this.state.processingGameEnd = false; // Reset game end processing flag
     
-    // Очищаем сохраненное состояние игры
-    await chrome.storage.local.remove('gameState');
+    // ПРИНУДИТЕЛЬНО ОЧИЩАЕМ ВСЕ СОХРАНЕННЫЕ ДАННЫЕ
+    console.log('🧹 ПРИНУДИТЕЛЬНАЯ ОЧИСТКА chrome.storage.local...');
+    await chrome.storage.local.clear();
+    console.log('✅ Storage полностью очищен');
     
     // Сбрасываем состояние
     this.state.currentGame = 0;
