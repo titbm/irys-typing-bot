@@ -12,7 +12,7 @@ class PopupController {
     this.settingsPanel = document.getElementById('settings-panel');
     this.progressPanel = document.getElementById('progress-panel');
     this.gameCountInput = document.getElementById('gameCount');
-    this.speedModeSelect = document.getElementById('speedMode');
+    this.proModeCheckbox = document.getElementById('proMode');
     this.startBtn = document.getElementById('startBtn');
     this.stopBtn = document.getElementById('stopBtn');
     this.currentGameSpan = document.getElementById('currentGame');
@@ -25,18 +25,19 @@ class PopupController {
     this.startBtn.addEventListener('click', () => this.handleStart());
     this.stopBtn.addEventListener('click', () => this.handleStop());
     
-    // Обработчик изменения режима скорости
-    this.speedModeSelect.addEventListener('change', () => this.handleSpeedModeChange());
+    // Обработчик изменения режима "Хочу быть лучшим"
+    this.proModeCheckbox.addEventListener('change', () => this.handleProModeChange());
   }
 
-  handleSpeedModeChange() {
-    const speedMode = this.speedModeSelect.value;
+  handleProModeChange() {
+    const isProMode = this.proModeCheckbox.checked;
+    const checkboxLabel = this.proModeCheckbox.closest('.checkbox-label');
     
-    if (speedMode === 'pro') {
-      this.speedModeSelect.classList.add('speed-mode-pro');
+    if (isProMode) {
+      checkboxLabel.classList.add('pro-mode-active');
       this.startBtn.textContent = '⚡ Запустить в режиме "Хочу быть лучшим"';
     } else {
-      this.speedModeSelect.classList.remove('speed-mode-pro');
+      checkboxLabel.classList.remove('pro-mode-active');
       this.startBtn.textContent = '🚀 Запустить автоматизацию';
     }
   }
@@ -61,7 +62,8 @@ class PopupController {
       return;
     }
 
-    const speedMode = this.speedModeSelect.value;
+    const isProMode = this.proModeCheckbox.checked;
+    const speedMode = isProMode ? 'pro' : 'normal';
     
     const settings = {
       gameCount: gameCount,

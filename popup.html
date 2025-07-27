@@ -39,10 +39,47 @@
       gap: 8px;
     }
     
-    .speed-mode-pro {
-      background: linear-gradient(135deg, #ff6b6b, #feca57) !important;
-      color: white !important;
-      font-weight: bold !important;
+    .checkbox-group {
+      margin: 10px 0;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #495057;
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      background: white;
+    }
+    
+    .checkbox-label:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+    
+    .checkbox-label input[type="checkbox"] {
+      margin-right: 10px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    .checkbox-label.pro-mode-active {
+      background: linear-gradient(135deg, #ff6b6b, #feca57);
+      color: white;
+      border-color: #ff6b6b;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    }
+    
+    .checkbox-label.pro-mode-active:hover {
+      background: linear-gradient(135deg, #ff5252, #ffb74d);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
     }
     
     label {
@@ -181,12 +218,12 @@
         <input type="number" id="gameCount" min="1" value="5">
       </div>
       
-      <div class="input-group">
-        <label for="speedMode">Режим скорости:</label>
-        <select id="speedMode">
-          <option value="normal">🎯 Обычный (натуральная печать)</option>
-          <option value="pro">⚡ Хочу быть лучшим (2x скорость, без ошибок)</option>
-        </select>
+      <div class="checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="proMode">
+          <span class="checkmark"></span>
+          ⚡ Хочу быть лучшим (2x скорость, без ошибок)
+        </label>
       </div>
       
       <button id="startBtn" class="start-btn">🚀 Запустить автоматизацию</button>
