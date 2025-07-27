@@ -10,13 +10,13 @@ class SpriteTypeParser {
         // Инициализируем модули
         this.wordParser = new WordParser();
         this.typingEngine = new TypingEngine();
-        
+
         this.initialize();
     }
 
     initialize() {
         console.log('🎯 Инициализация SpriteTypeParser');
-        
+
         if (!window.location.href.includes('spritetype.irys.xyz')) {
             console.log('❌ Неправильный сайт, ожидаем автоматического перехода...');
             // Не возвращаемся сразу, даем возможность background script перенаправить
@@ -34,13 +34,13 @@ class SpriteTypeParser {
                 this.wordParser.testParser();
             }
         }, 2000);
-        
+
         // Настраиваем обработчики сообщений
         this.setupMessageHandlers();
-        
+
         // Отправляем сигнал готовности в background
         this.sendMessage('CONTENT_READY');
-        
+
         console.log('✅ SpriteTypeParser готов');
     }
 
@@ -55,13 +55,13 @@ class SpriteTypeParser {
     setupMessageHandlers() {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.log('📨 Получено сообщение:', message.type);
-            
+
             switch (message.type) {
                 case 'START_AUTOMATION':
                     this.startAutomation(message.settings);
                     sendResponse({ success: true });
                     break;
-                    
+
                 case 'STOP_AUTOMATION':
                     this.stopAutomation();
                     sendResponse({ success: true });
@@ -71,7 +71,7 @@ class SpriteTypeParser {
                     this.restoreAutomation(message.gameState);
                     sendResponse({ success: true });
                     break;
-                    
+
                 default:
                     console.log('❓ Неизвестный тип сообщения:', message.type);
             }
@@ -96,10 +96,13 @@ class SpriteTypeParser {
             return;
         }
 
+        // Сбрасываем флаг остановки при запуске новой автоматизации
+        this.automationStopped = false;
+
         const speedMode = settings.speedMode || 'normal';
         const modeText = speedMode === 'pro' ? 'профессиональном режиме "Хочу быть лучшим"' : 'обычном режиме';
         console.log(`🚀 Запуск автоматической печати в ${modeText}`);
-        
+
         try {
             // Парсим слова
             const words = this.wordParser.parseWords();
@@ -111,23 +114,23 @@ class SpriteTypeParser {
             const allWordsText = words.map(w => w.text);
             console.log(`📝 Будем печатать ВСЕ слова: ${allWordsText.join(', ')}`);
             console.log(`📊 Общее количество слов: ${allWordsText.length}`);
-            
+
             if (speedMode === 'pro') {
                 console.log(`⚡ Режим "Хочу быть лучшим": удвоенная скорость, без ошибок!`);
             } else {
                 console.log(`🎯 Обычный режим: натуральная печать с ошибками`);
             }
-            
+
             // Запускаем мониторинг окончания игры
             this.startGameEndMonitoring();
-            
+
             // Даем время на подготовку перед началом печати
             console.log('⏳ Подготовка к печати...');
             await new Promise(resolve => setTimeout(resolve, 1000)); // 1 секунда подготовки
-            
+
             // Запускаем печать через движок с настройками
             await this.typingEngine.startTyping(allWordsText, settings);
-            
+
         } catch (error) {
             console.error('❌ Ошибка автоматической печати:', error);
             this.sendMessage('AUTOMATION_ERROR', {
@@ -142,8 +145,17 @@ class SpriteTypeParser {
      */
     stopAutomation() {
         console.log('🛑 Остановка автоматизации');
+
+        // Останавливаем печать
         this.typingEngine.stopTyping();
+
+        // Останавливаем мониторинг окончания игры
         this.stopGameEndMonitoring();
+
+        // Дополнительно помечаем, что автоматизация остановлена
+        this.automationStopped = true;
+
+        console.log('✅ Автоматизация полностью остановлена');
     }
 
     /**
@@ -151,21 +163,21 @@ class SpriteTypeParser {
      */
     startGameEndMonitoring() {
         console.log('👀 Запускаем мониторинг окончания игры...');
-        
+
         this.wordParser.startGameEndMonitoring((action) => {
             if (action === 'STOP_TYPING_ONLY') {
                 console.log('🏁 ИГРА ЗАКОНЧЕНА! Останавливаем печать...');
-                
+
                 // Принудительно останавливаем печать
                 this.typingEngine.forceStop();
-                
+
                 // НЕ запускаем следующую игру здесь!
                 return;
             }
-            
+
             if (action === 'GAME_COMPLETED') {
                 console.log('🎯 ИГРА ПОЛНОСТЬЮ ЗАВЕРШЕНА! Переходим к следующей...');
-                
+
                 // Уведомляем background script об окончании игры
                 this.sendMessage('GAME_ENDED', {
                     message: 'Игра закончена, автоматически нажата кнопка Submit'
@@ -177,7 +189,7 @@ class SpriteTypeParser {
                 }, 2500); // Увеличено с 1500 до 2500ms для натуральности
                 return;
             }
-            
+
             // Резервный вариант для обратной совместимости
             console.log('🎯 ИГРА ЗАВЕРШЕНА! (резервный путь)');
             this.startNextGame();
@@ -224,7 +236,7 @@ class SpriteTypeParser {
      */
     async restoreAutomation(gameState) {
         console.log('🔄 Начали игру:', gameState);
-        
+
         // Проверяем, что мы на правильном сайте
         if (!window.location.href.includes('spritetype.irys.xyz')) {
             console.log('❌ Попытка восстановления автоматизации не на целевом сайте');
@@ -234,7 +246,7 @@ class SpriteTypeParser {
             });
             return;
         }
-        
+
         if (!gameState || !gameState.isRunning) {
             console.log('❌ Нет активного состояния для восстановления');
             return;
@@ -251,10 +263,10 @@ class SpriteTypeParser {
 
         try {
             console.log(`🎮 Запускаем игру ${gameState.currentGame} из ${gameState.totalGames}`);
-            
+
             // Запускаем автоматизацию с сохраненными настройками
             await this.startAutomation(gameState.settings || {});
-            
+
         } catch (error) {
             console.error('❌ Ошибка восстановления автоматизации:', error);
             this.sendMessage('AUTOMATION_ERROR', {
@@ -269,10 +281,10 @@ class SpriteTypeParser {
      */
     async waitForGameReady() {
         console.log('⏳ Ожидание готовности игры...');
-        
+
         let attempts = 0;
         const maxAttempts = 20; // 10 секунд максимум
-        
+
         while (attempts < maxAttempts) {
             try {
                 // Проверяем, что игра загружена
@@ -284,11 +296,11 @@ class SpriteTypeParser {
             } catch (error) {
                 // Игра еще не готова
             }
-            
+
             attempts++;
             await new Promise(resolve => setTimeout(resolve, 500));
         }
-        
+
         throw new Error('Превышено время ожидания загрузки игры');
     }
 
@@ -298,33 +310,33 @@ class SpriteTypeParser {
      */
     async startNextGame() {
         console.log('🎯 Попытка автоматического запуска следующей игры...');
-        
+
         try {
             // Даем больше времени на обработку результатов текущей игры
             await new Promise(resolve => setTimeout(resolve, 3500)); // Увеличено с 2000 до 3500ms
-            
+
             // ВСЕГДА используем перезагрузку страницы для гарантированного запуска новой игры
             console.log('🔄 Перезагружаем страницу для запуска новой игры...');
-            
+
             // Уведомляем background о переходе к следующей игре
             this.sendMessage('NEXT_GAME_STARTED');
-            
+
             // Перезагружаем страницу через небольшую задержку
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
-            
+
             return true;
-            
+
         } catch (error) {
             console.error('❌ Ошибка при запуске следующей игры:', error);
-            
+
             // В случае ошибки все равно перезагружаем страницу
             console.log('🔄 Перезагружаем страницу после ошибки...');
             setTimeout(() => {
                 window.location.reload();
             }, 2000);
-            
+
             return false;
         }
     }

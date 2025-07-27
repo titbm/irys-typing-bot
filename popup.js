@@ -35,11 +35,11 @@ class PopupController {
     
     if (isProMode) {
       checkboxLabel.classList.add('pro-mode-active');
-      this.startBtn.textContent = '⚡ Запустить в режиме "Хочу быть лучшим"';
     } else {
       checkboxLabel.classList.remove('pro-mode-active');
-      this.startBtn.textContent = '🚀 Запустить автоматизацию';
     }
+    
+    // Текст кнопки НЕ изменяется
   }
 
   async loadState() {
