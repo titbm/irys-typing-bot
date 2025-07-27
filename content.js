@@ -58,7 +58,7 @@ class SpriteTypeParser {
             
             switch (message.type) {
                 case 'START_AUTOMATION':
-                    this.startAutomation();
+                    this.startAutomation(message.settings);
                     sendResponse({ success: true });
                     break;
                     
@@ -79,9 +79,9 @@ class SpriteTypeParser {
     }
 
     /**
-     * Запускает автоматическую печать (используется фиксированная высокая натуральность)
+     * Запускает автоматическую печать с выбранными настройками
      */
-    async startAutomation() {
+    async startAutomation(settings = {}) {
         // Проверяем, что мы на правильном сайте
         if (!window.location.href.includes('spritetype.irys.xyz')) {
             console.log('❌ Попытка запуска автоматизации не на целевом сайте');
@@ -96,7 +96,9 @@ class SpriteTypeParser {
             return;
         }
 
-        console.log('🚀 Запуск автоматической печати');
+        const speedMode = settings.speedMode || 'normal';
+        const modeText = speedMode === 'pro' ? 'профессиональном режиме "Хочу быть лучшим"' : 'обычном режиме';
+        console.log(`🚀 Запуск автоматической печати в ${modeText}`);
         
         try {
             // Парсим слова
@@ -110,6 +112,12 @@ class SpriteTypeParser {
             console.log(`📝 Будем печатать ВСЕ слова: ${allWordsText.join(', ')}`);
             console.log(`📊 Общее количество слов: ${allWordsText.length}`);
             
+            if (speedMode === 'pro') {
+                console.log(`⚡ Режим "Хочу быть лучшим": удвоенная скорость, без ошибок!`);
+            } else {
+                console.log(`🎯 Обычный режим: натуральная печать с ошибками`);
+            }
+            
             // Запускаем мониторинг окончания игры
             this.startGameEndMonitoring();
             
@@ -117,8 +125,8 @@ class SpriteTypeParser {
             console.log('⏳ Подготовка к печати...');
             await new Promise(resolve => setTimeout(resolve, 1000)); // 1 секунда подготовки
             
-            // Запускаем печать через движок (используется фиксированная высокая натуральность)
-            await this.typingEngine.startTyping(allWordsText);
+            // Запускаем печать через движок с настройками
+            await this.typingEngine.startTyping(allWordsText, settings);
             
         } catch (error) {
             console.error('❌ Ошибка автоматической печати:', error);
@@ -244,8 +252,8 @@ class SpriteTypeParser {
         try {
             console.log(`🎮 Запускаем игру ${gameState.currentGame} из ${gameState.totalGames}`);
             
-            // Запускаем автоматизацию (используется фиксированная высокая натуральность)
-            await this.startAutomation();
+            // Запускаем автоматизацию с сохраненными настройками
+            await this.startAutomation(gameState.settings || {});
             
         } catch (error) {
             console.error('❌ Ошибка восстановления автоматизации:', error);

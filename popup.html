@@ -39,6 +39,12 @@
       gap: 8px;
     }
     
+    .speed-mode-pro {
+      background: linear-gradient(135deg, #ff6b6b, #feca57) !important;
+      color: white !important;
+      font-weight: bold !important;
+    }
+    
     label {
       font-weight: 600;
       font-size: 14px;
@@ -173,6 +179,14 @@
       <div class="input-group">
         <label for="gameCount">Количество игр:</label>
         <input type="number" id="gameCount" min="1" value="5">
+      </div>
+      
+      <div class="input-group">
+        <label for="speedMode">Режим скорости:</label>
+        <select id="speedMode">
+          <option value="normal">🎯 Обычный (натуральная печать)</option>
+          <option value="pro">⚡ Хочу быть лучшим (2x скорость, без ошибок)</option>
+        </select>
       </div>
       
       <button id="startBtn" class="start-btn">🚀 Запустить автоматизацию</button>

@@ -12,6 +12,7 @@ class PopupController {
     this.settingsPanel = document.getElementById('settings-panel');
     this.progressPanel = document.getElementById('progress-panel');
     this.gameCountInput = document.getElementById('gameCount');
+    this.speedModeSelect = document.getElementById('speedMode');
     this.startBtn = document.getElementById('startBtn');
     this.stopBtn = document.getElementById('stopBtn');
     this.currentGameSpan = document.getElementById('currentGame');
@@ -23,6 +24,21 @@ class PopupController {
   attachEventListeners() {
     this.startBtn.addEventListener('click', () => this.handleStart());
     this.stopBtn.addEventListener('click', () => this.handleStop());
+    
+    // Обработчик изменения режима скорости
+    this.speedModeSelect.addEventListener('change', () => this.handleSpeedModeChange());
+  }
+
+  handleSpeedModeChange() {
+    const speedMode = this.speedModeSelect.value;
+    
+    if (speedMode === 'pro') {
+      this.speedModeSelect.classList.add('speed-mode-pro');
+      this.startBtn.textContent = '⚡ Запустить в режиме "Хочу быть лучшим"';
+    } else {
+      this.speedModeSelect.classList.remove('speed-mode-pro');
+      this.startBtn.textContent = '🚀 Запустить автоматизацию';
+    }
   }
 
   async loadState() {
@@ -45,8 +61,11 @@ class PopupController {
       return;
     }
 
+    const speedMode = this.speedModeSelect.value;
+    
     const settings = {
-      gameCount: gameCount
+      gameCount: gameCount,
+      speedMode: speedMode
     };
 
     console.log('Popup: Sending START_AUTOMATION message with settings:', settings);
@@ -64,7 +83,8 @@ class PopupController {
       return;
     }
 
-    this.showProgress(1, gameCount, 'Инициализация...');
+    const modeText = speedMode === 'pro' ? 'Режим "Хочу быть лучшим"' : 'Инициализация...';
+    this.showProgress(1, gameCount, modeText);
   }
 
   handleStop() {
