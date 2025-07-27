@@ -1,4 +1,4 @@
-// Popup script for Chrome Typing Bot
+// Popup script for Irys Typing Bot
 // Handles user interface interactions and communication with background script
 
 class PopupController {
@@ -45,17 +45,6 @@ class PopupController {
       return;
     }
 
-    // Check if we're on the correct site
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const currentTab = tabs[0];
-    
-    console.log('Popup: Current tab URL:', currentTab?.url);
-    
-    if (!currentTab?.url?.includes('spritetype.irys.xyz')) {
-      this.showError('Пожалуйста, откройте сайт spritetype.irys.xyz');
-      return;
-    }
-
     const settings = {
       gameCount: gameCount
     };
@@ -75,7 +64,7 @@ class PopupController {
       return;
     }
 
-    this.showProgress(1, gameCount, 'Запуск...');
+    this.showProgress(1, gameCount, 'Инициализация...');
   }
 
   handleStop() {

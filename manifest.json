@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Chrome Typing Bot",
-  "version": "1.0.0",
+  "name": "Irys Typing Bot",
+  "version": "1.1.0",
   "description": "Автоматизация игры в печать на сайте spritetype.irys.xyz",
   
   "permissions": [
@@ -33,7 +33,7 @@
   
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Chrome Typing Bot",
+    "default_title": "Irys Typing Bot",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

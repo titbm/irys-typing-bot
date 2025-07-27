@@ -1,4 +1,4 @@
-// Background script for Chrome Typing Bot
+// Background script for Irys Typing Bot
 // Coordinates communication between popup and content script
 
 class BackgroundController {
@@ -10,7 +10,7 @@ class BackgroundController {
       settings: null,
       processingGameEnd: false
     };
-    
+
     this.initializeListeners();
   }
 
@@ -24,6 +24,7 @@ class BackgroundController {
     // Handle extension icon click - ensure we're on the right site
     chrome.action.onClicked.addListener(async (tab) => {
       if (!tab.url.includes('spritetype.irys.xyz')) {
+        console.log('Background: Автоматический переход на spritetype.irys.xyz при клике на иконку');
         await chrome.tabs.update(tab.id, { url: 'https://spritetype.irys.xyz/' });
       }
     });
@@ -47,40 +48,40 @@ class BackgroundController {
 
       case 'CONTENT_READY':
         console.log('Background: Content script is ready');
-        
+
         // Проверяем, есть ли сохраненное состояние игры
         const savedState = await chrome.storage.local.get('gameState');
-        
+
         if (savedState.gameState && savedState.gameState.isRunning) {
           console.log('Background: Найдено сохраненное состояние, восстанавливаем игру:', savedState.gameState);
-          
+
           // Восстанавливаем состояние background
           this.state.isRunning = savedState.gameState.isRunning;
           this.state.currentGame = savedState.gameState.currentGame;
           this.state.totalGames = savedState.gameState.totalGames;
           this.state.settings = savedState.gameState.settings;
           this.state.automationStarted = true; // Важно! Помечаем как уже запущенную
-          
+
           // Отправляем команду восстановления в content script
           setTimeout(() => {
-            this.sendToContentScript({ 
-              type: 'RESTORE_AUTOMATION', 
-              gameState: savedState.gameState 
+            this.sendToContentScript({
+              type: 'RESTORE_AUTOMATION',
+              gameState: savedState.gameState
             });
           }, 1000); // Даем больше времени на загрузку
-          
+
         } else if (this.state.isRunning && this.state.settings && !this.state.automationStarted) {
           // Обычный запуск новой автоматизации
           console.log('Background: Starting automation after content script ready');
           this.state.automationStarted = true; // Prevent multiple starts
           setTimeout(() => {
-            this.sendToContentScript({ 
-              type: 'START_AUTOMATION', 
-              settings: this.state.settings 
+            this.sendToContentScript({
+              type: 'START_AUTOMATION',
+              settings: this.state.settings
             });
           }, 500);
         }
-        
+
         sendResponse({ success: true });
         break;
 
@@ -135,15 +136,15 @@ class BackgroundController {
 
   async startAutomation(settings) {
     console.log('Background: Starting automation with settings:', settings);
-    
+
     // ПРИНУДИТЕЛЬНО ОЧИЩАЕМ СТАРЫЕ ДАННЫЕ ПЕРЕД ЗАПУСКОМ
     console.log('🧹 ОЧИСТКА старого состояния перед запуском...');
     await chrome.storage.local.clear();
     console.log('✅ Storage очищен, начинаем с чистого листа');
-    
+
     // Reset automation state flags
     this.state.automationStarted = false;
-    
+
     this.state.isRunning = true;
     this.state.currentGame = 1;
     this.state.totalGames = settings.gameCount;
@@ -158,13 +159,40 @@ class BackgroundController {
     // Store the tab ID for later use
     this.state.targetTabId = currentTab.id;
 
-    if (!currentTab.url.includes('spritetype.irys.xyz')) {
-      console.log('Background: Navigating to target site');
-      await chrome.tabs.update(currentTab.id, { url: 'https://spritetype.irys.xyz/' });
+    // Проверяем, находимся ли мы на правильном сайте
+    const targetUrl = 'https://spritetype.irys.xyz/';
+    const isOnTargetSite = currentTab.url && currentTab.url.includes('spritetype.irys.xyz');
+
+    if (!isOnTargetSite) {
+      console.log('Background: Автоматический переход на целевой сайт:', targetUrl);
+
+      // Уведомляем popup о переходе на нужную страницу
+      this.sendToPopup({
+        type: 'PROGRESS_UPDATE',
+        currentGame: this.state.currentGame,
+        totalGames: this.state.totalGames,
+        status: 'Переход на spritetype.irys.xyz...'
+      });
+
+      // Переходим на целевой сайт
+      await chrome.tabs.update(currentTab.id, { url: targetUrl });
+
+      // Ждем загрузки страницы
+      await this.waitForPageLoad(currentTab.id);
+
     } else {
       // Always refresh the page before starting automation to ensure clean state
-      console.log('Background: Refreshing page before starting automation');
+      console.log('Background: Обновление страницы для чистого состояния');
+
+      this.sendToPopup({
+        type: 'PROGRESS_UPDATE',
+        currentGame: this.state.currentGame,
+        totalGames: this.state.totalGames,
+        status: 'Подготовка к игре...'
+      });
+
       await chrome.tabs.reload(currentTab.id);
+      await this.waitForPageLoad(currentTab.id);
     }
 
     // Notify popup
@@ -172,7 +200,7 @@ class BackgroundController {
       type: 'PROGRESS_UPDATE',
       currentGame: this.state.currentGame,
       totalGames: this.state.totalGames,
-      status: 'Начали игру...'
+      status: 'Ожидание загрузки игры...'
     });
 
     // Note: We now wait for CONTENT_READY message instead of using setTimeout
@@ -184,20 +212,20 @@ class BackgroundController {
     this.state.isRunning = false;
     this.state.automationStarted = false; // Reset flag for next start
     this.state.processingGameEnd = false; // Reset game end processing flag
-    
+
     // ПРИНУДИТЕЛЬНО ОЧИЩАЕМ ВСЕ СОХРАНЕННЫЕ ДАННЫЕ
     console.log('🧹 ПРИНУДИТЕЛЬНАЯ ОЧИСТКА chrome.storage.local...');
     await chrome.storage.local.clear();
     console.log('✅ Storage полностью очищен');
-    
+
     // Сбрасываем состояние
     this.state.currentGame = 0;
     this.state.totalGames = 0;
     this.state.settings = null;
-    
+
     // Send stop message to content script
     this.sendToContentScript({ type: 'STOP_AUTOMATION' });
-    
+
     // Notify popup
     this.sendToPopup({ type: 'AUTOMATION_STOPPED' });
   }
@@ -205,7 +233,7 @@ class BackgroundController {
   updateProgress(message) {
     // НЕ перезаписываем this.state.currentGame из сообщений!
     // Счетчик управляется только в handleGameCompleted
-    
+
     // Forward to popup
     this.sendToPopup({
       type: 'PROGRESS_UPDATE',
@@ -226,7 +254,7 @@ class BackgroundController {
   handleGameEnded(message) {
     console.log('🎯 Background: handleGameEnded ВЫЗВАН - игра закончена, получено сообщение:', message.message);
     console.log(`🎯 Background: Состояние перед обработкой - currentGame: ${this.state.currentGame}, isRunning: ${this.state.isRunning}, processingGameEnd: ${this.state.processingGameEnd}`);
-    
+
     if (!this.state.isRunning) {
       console.log('❌ Background: Автоматизация не активна, игнорируем завершение игры');
       return;
@@ -243,52 +271,52 @@ class BackgroundController {
   async handleGameCompleted() {
     console.log('🔍 Background: handleGameCompleted НАЧАЛО - проверяем нужно ли продолжать...');
     console.log(`🔍 Background: Текущее состояние - currentGame: ${this.state.currentGame}, totalGames: ${this.state.totalGames}, isRunning: ${this.state.isRunning}, processingGameEnd: ${this.state.processingGameEnd}`);
-    
+
     if (!this.state.isRunning) {
       console.log('❌ Background: Автоматизация не активна, игнорируем');
       return;
     }
-    
+
     // Защита от двойного вызова - проверяем, не обрабатываем ли уже завершение
     if (this.state.processingGameEnd) {
       console.log('⚠️ Background: Завершение игры уже обрабатывается, игнорируем повторный вызов');
       return;
     }
-    
+
     this.state.processingGameEnd = true;
     console.log('🔒 Background: Установили блокировку processingGameEnd = true');
-    
+
     try {
       console.log(`📊 Background: Завершена игра ${this.state.currentGame} из ${this.state.totalGames}`);
-      
+
       // Проверяем, достигли ли целевого количества игр (БЕЗ увеличения счетчика)
       if (this.state.currentGame >= this.state.totalGames) {
         console.log('🏁 Background: Все игры завершены!');
         this.state.isRunning = false;
-        
+
         // Очищаем сохраненное состояние
         await chrome.storage.local.remove('gameState');
-        
+
         // Уведомляем popup о завершении всех игр
-        this.sendToPopup({ 
+        this.sendToPopup({
           type: 'AUTOMATION_COMPLETE',
           message: `Завершены все ${this.state.totalGames} игр(ы)`
         });
-        
+
         // Сброс состояния
         this.state.currentGame = 0;
         this.state.totalGames = 0;
         this.state.settings = null;
-        
+
         return;
       }
-      
+
       // Увеличиваем счетчик только сейчас, перед переходом к следующей игре
       const oldGame = this.state.currentGame;
       this.state.currentGame++;
       console.log(`➡️ Background: УВЕЛИЧИЛИ счетчик с ${oldGame} на ${this.state.currentGame}`);
       console.log(`🎮 Background: Переходим к игре ${this.state.currentGame} из ${this.state.totalGames}`);
-      
+
       // Обновляем прогресс
       this.sendToPopup({
         type: 'PROGRESS_UPDATE',
@@ -296,7 +324,7 @@ class BackgroundController {
         totalGames: this.state.totalGames,
         status: `Ожидание новой игры ${this.state.currentGame} из ${this.state.totalGames}`
       });
-      
+
       // Сохраняем состояние для восстановления после перезагрузки страницы
       await chrome.storage.local.set({
         gameState: {
@@ -306,9 +334,9 @@ class BackgroundController {
           settings: this.state.settings
         }
       });
-      
+
       console.log('💾 Background: Состояние сохранено, content script запустит следующую игру...');
-      
+
     } finally {
       // Снимаем блокировку через небольшую задержку
       setTimeout(() => {
@@ -325,21 +353,49 @@ class BackgroundController {
    */
   handleErrorNotification(errorInfo) {
     console.log('Background: Error notification received:', errorInfo);
-    
+
     // Forward error notification to popup
-    this.sendToPopup({ 
-      type: 'ERROR_NOTIFICATION', 
-      errorInfo: errorInfo 
+    this.sendToPopup({
+      type: 'ERROR_NOTIFICATION',
+      errorInfo: errorInfo
     });
-    
+
     // If error is critical and not recoverable, stop automation
     if (!errorInfo.recoverable && this.state.isRunning) {
       console.warn('Background: Critical error detected, stopping automation due to:', errorInfo.message);
-      this.handleAutomationError({ 
+      this.handleAutomationError({
         error: errorInfo.message,
-        currentGame: this.state.currentGame 
+        currentGame: this.state.currentGame
       });
     }
+  }
+
+  /**
+   * Ожидает полной загрузки страницы
+   */
+  async waitForPageLoad(tabId) {
+    return new Promise((resolve) => {
+      const checkComplete = () => {
+        chrome.tabs.get(tabId, (tab) => {
+          if (chrome.runtime.lastError) {
+            console.warn('Background: Ошибка получения информации о вкладке:', chrome.runtime.lastError);
+            resolve();
+            return;
+          }
+
+          if (tab.status === 'complete') {
+            console.log('Background: Страница полностью загружена');
+            // Дополнительная задержка для загрузки скриптов
+            setTimeout(resolve, 1500);
+          } else {
+            console.log('Background: Ожидание загрузки страницы...');
+            setTimeout(checkComplete, 500);
+          }
+        });
+      };
+
+      checkComplete();
+    });
   }
 
   async sendToContentScript(message) {
@@ -358,7 +414,7 @@ class BackgroundController {
 
       // Fallback: First try to find the spritetype.irys.xyz tab specifically
       const spriteTabs = await chrome.tabs.query({ url: 'https://spritetype.irys.xyz/*' });
-      
+
       if (spriteTabs.length > 0) {
         const targetTab = spriteTabs[0];
         console.log('Background: Sending message to content script:', message.type, 'Tab:', targetTab.url);
@@ -395,7 +451,7 @@ class BackgroundController {
   async handleTypeCharacter(character, tabId) {
     try {
       console.log(`🔥 DEBUGGER API: отправляем символ "${character}" (код: ${character.charCodeAt(0)}) на tab ${tabId}`);
-      
+
       // Подключаемся к debugger
       await new Promise((resolve, reject) => {
         chrome.debugger.attach({ tabId }, '1.3', () => {
@@ -406,9 +462,9 @@ class BackgroundController {
           }
         });
       });
-      
+
       console.log('✅ Debugger подключен');
-      
+
       // Отправляем ТОЛЬКО keyDown и keyUp (БЕЗ char!)
       await new Promise((resolve, reject) => {
         chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
@@ -428,7 +484,7 @@ class BackgroundController {
           }
         });
       });
-      
+
       // Отправляем keyUp
       await new Promise((resolve, reject) => {
         chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
@@ -448,20 +504,20 @@ class BackgroundController {
           }
         });
       });
-      
+
       // Отключаемся от debugger
       chrome.debugger.detach({ tabId }, () => {
         console.log('✅ Debugger отключен');
       });
-      
+
       console.log(`🔥 СИМВОЛ "${character}" ПОЛНОСТЬЮ ОТПРАВЛЕН!`);
-      
+
     } catch (error) {
       console.error('❌ Ошибка Debugger API:', error);
-      
+
       // Отключаемся в случае ошибки
-      chrome.debugger.detach({ tabId }, () => {});
-      
+      chrome.debugger.detach({ tabId }, () => { });
+
       throw error;
     }
   }
@@ -471,7 +527,7 @@ class BackgroundController {
    */
   handleNextGameStarted() {
     console.log('Background: Получено уведомление о запуске следующей игры');
-    
+
     if (this.state.isRunning) {
       // Обновляем прогресс в popup
       this.sendToPopup({
@@ -488,10 +544,10 @@ class BackgroundController {
    */
   handleAutomationRestoreReady(message) {
     console.log('Background: Content script готов к восстановлению автоматизации');
-    
+
     this.state.currentGame = message.currentGame;
     this.state.totalGames = message.totalGames;
-    
+
     // Обновляем прогресс в popup
     this.sendToPopup({
       type: 'PROGRESS_UPDATE',
@@ -506,17 +562,17 @@ class BackgroundController {
    */
   handleAutomationError(message) {
     console.error('Background: Ошибка автоматизации:', message.error);
-    
+
     // Останавливаем автоматизацию при ошибке
     this.state.isRunning = false;
-    
+
     // Уведомляем popup об ошибке
     this.sendToPopup({
       type: 'AUTOMATION_ERROR',
       error: message.error,
       currentGame: message.currentGame || this.state.currentGame
     });
-    
+
     // Очищаем сохраненное состояние
     chrome.storage.local.remove('gameState');
   }
@@ -527,7 +583,7 @@ class BackgroundController {
   async handleTypeBackspace(tabId) {
     try {
       console.log(`🔙 DEBUGGER API: отправляем Backspace на tab ${tabId}`);
-      
+
       // Подключаемся к debugger
       await new Promise((resolve, reject) => {
         chrome.debugger.attach({ tabId }, '1.3', () => {
@@ -538,9 +594,9 @@ class BackgroundController {
           }
         });
       });
-      
+
       console.log('✅ Debugger подключен для Backspace');
-      
+
       // Отправляем keyDown для Backspace
       await new Promise((resolve, reject) => {
         chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
@@ -559,7 +615,7 @@ class BackgroundController {
           }
         });
       });
-      
+
       // Отправляем keyUp для Backspace
       await new Promise((resolve, reject) => {
         chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
@@ -578,20 +634,20 @@ class BackgroundController {
           }
         });
       });
-      
+
       // Отключаемся от debugger
       chrome.debugger.detach({ tabId }, () => {
         console.log('✅ Debugger отключен после Backspace');
       });
-      
+
       console.log('🔙 BACKSPACE успешно отправлен!');
-      
+
     } catch (error) {
       console.error('❌ Ошибка Backspace Debugger API:', error);
-      
+
       // Отключаемся в случае ошибки
-      chrome.debugger.detach({ tabId }, () => {});
-      
+      chrome.debugger.detach({ tabId }, () => { });
+
       throw error;
     }
   }

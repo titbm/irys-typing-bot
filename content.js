@@ -18,12 +18,22 @@ class SpriteTypeParser {
         console.log('🎯 Инициализация SpriteTypeParser');
         
         if (!window.location.href.includes('spritetype.irys.xyz')) {
-            console.log('❌ Неправильный сайт');
-            return;
+            console.log('❌ Неправильный сайт, ожидаем автоматического перехода...');
+            // Не возвращаемся сразу, даем возможность background script перенаправить
+            setTimeout(() => {
+                if (!window.location.href.includes('spritetype.irys.xyz')) {
+                    console.log('❌ Все еще не на правильном сайте после ожидания');
+                    return;
+                }
+            }, 3000);
         }
 
         // Тестируем парсер через 2 секунды
-        setTimeout(() => this.wordParser.testParser(), 2000);
+        setTimeout(() => {
+            if (window.location.href.includes('spritetype.irys.xyz') && this.wordParser) {
+                this.wordParser.testParser();
+            }
+        }, 2000);
         
         // Настраиваем обработчики сообщений
         this.setupMessageHandlers();
@@ -72,6 +82,15 @@ class SpriteTypeParser {
      * Запускает автоматическую печать (используется фиксированная высокая натуральность)
      */
     async startAutomation() {
+        // Проверяем, что мы на правильном сайте
+        if (!window.location.href.includes('spritetype.irys.xyz')) {
+            console.log('❌ Попытка запуска автоматизации не на целевом сайте');
+            this.sendMessage('AUTOMATION_ERROR', {
+                error: 'Автоматизация может работать только на сайте spritetype.irys.xyz'
+            });
+            return;
+        }
+
         if (this.typingEngine.isRunning()) {
             console.log('⚠️ Печать уже запущена');
             return;
@@ -103,6 +122,9 @@ class SpriteTypeParser {
             
         } catch (error) {
             console.error('❌ Ошибка автоматической печати:', error);
+            this.sendMessage('AUTOMATION_ERROR', {
+                error: error.message
+            });
             this.stopAutomation();
         }
     }
@@ -194,6 +216,16 @@ class SpriteTypeParser {
      */
     async restoreAutomation(gameState) {
         console.log('🔄 Начали игру:', gameState);
+        
+        // Проверяем, что мы на правильном сайте
+        if (!window.location.href.includes('spritetype.irys.xyz')) {
+            console.log('❌ Попытка восстановления автоматизации не на целевом сайте');
+            this.sendMessage('AUTOMATION_ERROR', {
+                error: 'Автоматизация может работать только на сайте spritetype.irys.xyz',
+                currentGame: gameState?.currentGame || 0
+            });
+            return;
+        }
         
         if (!gameState || !gameState.isRunning) {
             console.log('❌ Нет активного состояния для восстановления');
